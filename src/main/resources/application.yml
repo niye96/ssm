@@ -1,0 +1,59 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: user-service
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    password: root
+    username: root
+    url: jdbc:mysql://127.0.0.1:3306/ssm?useUnicode=true&characterEncoding=utf8
+  jpa:
+    database: mysql
+  redis:
+    host: 192.168.52.130
+    pool:
+      max-wait: 10000
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://127.0.0.1:8888/eureka/    # 指定注册中心的地址
+  instance:
+    instance-id: ${spring.cloud.client.ipAddress}:${server.port}
+    preferIpAddress: true
+
+endpoints:
+  shutdown:
+    enabled: true
+    sensitive: false
+  restart:
+    enabled: true
+    sensitive: false
+  trace:
+    enabled: true
+    sensitive: false
+  dump:
+    enabled: true
+    sensitive: false
+  metrics:
+    enabled: true
+    sensitive: false
+  env:
+    enabled: true
+    sensitive: false
+  health:
+    enabled: true
+    sensitive: false
+  logfile:
+    enabled: true
+    sensitive: false
+  configprops:
+    enabled: true
+    sensitive: false
+
+security:
+  basic:
+    enabled: false
+management:
+  security:
+    enabled: false

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ZH">
+<head>
+    <meta charset="UTF-8">
+    <title>spring boot + mybatis + vue + elementui</title>
+    <link rel="stylesheet" href="//cdn.bootcss.com/element-ui/1.1.2/theme-default/index.css">
+
+</head>
+<body>
+<!--数据列表-->
+<div id="vm">
+    <el-row :gutter="3" style="margin: 10px 0;">
+        <el-col :span="5">
+            <el-input placeholder="输入用户编码查询" v-model="filter.userCode" icon="search"></el-input>
+            <el-input placeholder="输入电话查询" v-model="filter.phone" icon="search"></el-input>
+        </el-col>
+        <el-col :span="5">
+            <el-input placeholder="输入邮箱查询" v-model="filter.mail" icon="search"></el-input>
+            <el-input placeholder="输入年龄查询" v-model="filter.age" icon="search"></el-input>
+        </el-col>
+        <el-col :span="5">
+            <el-button @click="getUsers">查询</el-button>
+            <el-button @click="addUser">新增</el-button>
+            <el-button @click="deleteUsers">删除</el-button>
+        </el-col>
+    </el-row>
+    <el-table border fit :data="tableData" highlight-current-row style="width: 100%;font-size: 12px;"
+              @selection-change="selectionChange">
+        <el-table-column type="selection" width="55"></el-table-column>
+        <el-table-column prop="userCode" label="用户编码"></el-table-column>
+        <el-table-column prop="age" label="年龄"></el-table-column>
+        <el-table-column prop="phone" label="电话号码"></el-table-column>
+        <el-table-column prop="mail" label="邮箱"></el-table-column>
+        <el-table-column prop="department" label="组信息"></el-table-column>
+        <el-table-column prop="createTime" label="创建时间" sortable :formatter="formatCreateDate"></el-table-column>
+        <el-table-column label="操作">
+            <template scope="scope">
+                <el-button
+                        size="small"
+                        type="info"
+                        @click="info(scope.row)">详情
+                </el-button>
+                <el-button
+                        size="small"
+                        type="warning"
+                        @click="editUser(scope.row)">编辑
+                </el-button>
+                <el-button
+                        size="small"
+                        type="danger"
+                        @click="deleteUser(scope.row)">删除
+                </el-button>
+            </template>
+        </el-table-column>
+    </el-table>
+    <el-col class="toolbar" style="padding:10px;">
+        <el-pagination
+                @size-change="changeSize"
+                @current-change="changeCurrentPage"
+                :current-page="filter.start"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="filter.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="filter.total">
+        </el-pagination>
+    </el-col>
+    <!--新增窗口-->
+    <el-dialog title="新增用户信息" v-model="dialogCreateVisible" :close-on-click-modal="false"
+               :close-on-press-escape="false" @close="dialogCreateReset">
+        <el-form id="#add" :model="add" :rules="rules" ref="add" label-width="100px">
+            <el-form-item label="用户编码" prop="userCode">
+                <el-input v-model="add.userCode"></el-input>
+            </el-form-item>
+            <el-form-item label="分组" prop="department">
+                <el-select v-model="add.department" placeholder="请选择分组">
+                    <el-option label="研发" value="研发"></el-option>
+                    <el-option label="运维" value="运维"></el-option>
+                    <el-option label="运营" value="运营"></el-option>
+                    <el-option label="其他" value="其他"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="电话" prop="phone">
+                <el-input v-model="add.phone"></el-input>
+            </el-form-item>
+            <el-form-item label="邮箱" prop="mail">
+                <el-input v-model="add.mail"></el-input>
+            </el-form-item>
+            <el-form-item label="年龄" prop="age">
+                <el-input v-model.number="add.age"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogCreateVisible = false">取 消</el-button>
+            <el-button type="primary" :loading="createLoading" @click="saveUser">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <!--编辑窗口-->
+    <el-dialog title="编辑用户信息" v-model="dialogEditVisible" :close-on-click-modal="false"
+               :close-on-press-escape="false" @close="dialogUpdateReset">
+        <el-form id="#update" :model="update" :rules="rules" ref="update" label-width="100px">
+            <el-form-item label="用户编码" prop="userCode">
+                <el-input v-model="update.userCode" :disabled="true"></el-input>
+            </el-form-item>
+            <el-form-item label="分组" prop="department">
+                <el-select v-model="update.department" placeholder="请选择分组">
+                    <el-option label="研发" value="研发"></el-option>
+                    <el-option label="运维" value="运维"></el-option>
+                    <el-option label="运营" value="运营"></el-option>
+                    <el-option label="其他" value="其他"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="电话" prop="phone">
+                <el-input v-model="update.phone"></el-input>
+            </el-form-item>
+            <el-form-item label="邮箱" prop="mail">
+                <el-input v-model="update.mail"></el-input>
+            </el-form-item>
+            <el-form-item label="年龄" prop="age">
+                <el-input v-model.number="update.age"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogEditVisible = false">取 消</el-button>
+            <el-button type="primary" :loading="editLoading" @click="saveUser">确 定</el-button>
+        </div>
+    </el-dialog>
+    <!--详情窗口-->
+    <el-dialog title="详细用户信息" v-model="dialogInfoVisible" :close-on-click-modal="false"
+               :close-on-press-escape="false">
+        <el-form id="#userInfo" :model="user" :ref="user" label-width="100px">
+            <el-form-item label="用户编码" prop="userCode" :readonly="true">
+                <el-input v-model="user.userCode" :readonly="true"></el-input>
+            </el-form-item>
+            <el-form-item label="分组">
+                <el-select v-model="user.department" placeholder="请选择分组" prop="department" :disabled="true">
+                    <el-option label="研发" value="研发"></el-option>
+                    <el-option label="运维" value="运维"></el-option>
+                    <el-option label="运营" value="运营"></el-option>
+                    <el-option label="其他" value="其他"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="电话" prop="phone">
+                <el-input v-model="user.phone" :readonly="true"></el-input>
+            </el-form-item>
+            <el-form-item label="邮箱" prop="mail">
+                <el-input v-model="user.mail" :readonly="true"></el-input>
+            </el-form-item>
+            <el-form-item label="年龄" prop="age">
+                <el-input v-model.number="user.age" :readonly="true"></el-input>
+            </el-form-item>
+            <el-form-item label="创建日期" prop="age">
+                <el-date-picker
+                        v-model="user.createTime"
+                        type="date"
+                        placeholder="选择日期"
+                        :readonly="true">
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="创建人" prop="age">
+                <el-input v-model="user.createBy" :readonly="true"></el-input>
+            </el-form-item>
+            <el-form-item label="修改日期" prop="age">
+                <el-date-picker
+                        v-model="user.modifiedTime"
+                        type="date"
+                        placeholder="选择日期"
+                        :readonly="true">
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="修改人" prop="modifiedBy">
+                <el-input v-model="user.modifiedBy" :readonly="true"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogInfoVisible = false">取 消</el-button>
+            <el-button type="primary" :loading="infoLoading" @click="dialogInfoVisible = false">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+<!--编辑对话框-->
+
+<script src="common.js"></script>
+<script src="//cdn.bootcss.com/vue/2.1.8/vue.min.js"></script>
+<script src="//cdn.bootcss.com/element-ui/1.1.2/index.js"></script>
+<script src="//cdn.bootcss.com/vue-resource/1.0.3/vue-resource.min.js"></script>
+<script src="index.js">
+</script>
+</body>
+</html>
